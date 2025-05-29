@@ -9,46 +9,47 @@ import scipy.constants as spc
 from matplotlib.animation import FuncAnimation
 import tkinter as tk
 
-def Simulate():
-        Isp = float(isp_entry.get()) * u.s
+def simulate():
+        isp = float(isp_entry.get()) * u.s
         r1 = float(r1_entry.get()) * u.km
         r2 = float(r2_entry.get()) * u.km
 
         g0 = 9.81 * u.m / u.s**2
-        Ve = Isp * g0
+        ve = isp * g0
 
         mass_earth = 5.97219e24 * u.kg
         G = spc.gravitational_constant * u.m**3 / u.kg / u.s**2 * u.Unit("")
 
         # Velocities at circular orbits
-        Vc1 = np.sqrt(G * mass_earth / r1)
-        Vc2 = np.sqrt(G * mass_earth / r2)
+        vc1 = np.sqrt(G * mass_earth / r1)
+        vc2 = np.sqrt(G * mass_earth / r2)
         a = (r1 + r2) / 2 # Semi-major axis
         ecc = (r2 - r1) / (r1 + r2)
 
         # Velocities at burns
-        Vb1 = np.sqrt(G * mass_earth * (2 / r1 - 1 / a))
-        Vb2 = np.sqrt(G * mass_earth * (2 / r2 - 1 / a))
-        delta_V1 = (Vb1 - Vc1).to(u.m/u.s)
-        delta_V2 = (Vc2 - Vb2).to(u.m/u.s)
-        delta_V = delta_V1 + delta_V2
+        vb1 = np.sqrt(G * mass_earth * (2 / r1 - 1 / a))
+        vb2 = np.sqrt(G * mass_earth * (2 / r2 - 1 / a))
 
-        mass_ratio1 = np.exp(delta_V1 / Ve)
-        mass_ratio2 = np.exp(delta_V2 / Ve)
-        mass_ratio_total = np.exp(delta_V / Ve)
+        delta_v1 = (vb1 - vc1).to(u.m/u.s)
+        delta_v2 = (vc2 - vb2).to(u.m/u.s)
+        delta_v = delta_v1 + delta_v2
+
+        mass_ratio1 = np.exp(delta_v1 / ve)
+        mass_ratio2 = np.exp(delta_v2 / ve)
+        mass_ratio_total = np.exp(delta_v / ve)
 
         print(f"Mass ratio for Burn 1: {mass_ratio1:.3f}")
         print(f"Mass ratio for Burn 2: {mass_ratio2:.3f}")
         print(f"Total mass ratio: {mass_ratio_total:.3f} \n")
 
-        print(f"delta_V1 (Burn 1): {delta_V1:.2f}")
-        print(f"delta_V2 (Burn 2): {delta_V2:.2f}")
-        print(f"Total delta_V: {delta_V:.2f}")
+        print(f"delta_V1 (Burn 1): {delta_v1:.2f}")
+        print(f"delta_V2 (Burn 2): {delta_v2:.2f}")
+        print(f"Total delta_V: {delta_v:.2f}")
 
         epoch = Time("2025-01-01", scale="tdb")
 
-        LEO = Orbit.circular(Earth, alt=(r1 - Earth.R).to(u.km), epoch=epoch)
-        GEO = Orbit.circular(Earth, alt=(r2 - Earth.R).to(u.km), epoch=epoch)
+        leo = Orbit.circular(Earth, alt=(r1 - Earth.R).to(u.km), epoch=epoch)
+        geo = Orbit.circular(Earth, alt=(r2 - Earth.R).to(u.km), epoch=epoch)
         hohmann = Orbit.from_classical(Earth, a=a, ecc=ecc, inc=0*u.deg, raan=0*u.deg, argp=0*u.deg, nu=0*u.deg, epoch=epoch)
 
         num_frames = 200
@@ -57,14 +58,14 @@ def Simulate():
 
         fig, ax = plt.subplots(figsize=(10, 10))
         plotter = StaticOrbitPlotter(ax)
-        plotter.plot(LEO, label="Initial Orbit", color="green")
-        plotter.plot(GEO, label="Target Orbit", color="blue")
+        plotter.plot(leo, label="Initial Orbit", color="green")
+        plotter.plot(geo, label="Target Orbit", color="blue")
         plotter.plot(hohmann, label="Hohmann Transfer", color="red")
 
         # Burn annotations
-        ax.text(r1.value, 0, f"delta_V1 = {delta_V1.value:.2f} m/s", ha='right', va='bottom', color='red', fontsize=10,
+        ax.text(r1.value, 0, f"delta_V1 = {delta_v1.value:.2f} m/s", ha='right', va='bottom', color='red', fontsize=10,
                 bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
-        ax.text(-r2.value, 0, f"delta_V2 = {delta_V2.value:.2f} m/s", ha='left', va='top', color='red', fontsize=10,
+        ax.text(-r2.value, 0, f"delta_V2 = {delta_v2.value:.2f} m/s", ha='left', va='top', color='red', fontsize=10,
                 bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
 
         # Rocket marker
@@ -103,7 +104,7 @@ r2_entry = tk.Entry(root)
 r2_entry.insert(0, "0")
 r2_entry.pack()
 
-tk.Button(root, text="Run Simulation", command=Simulate).pack(pady=10)
+tk.Button(root, text="Run Simulation", command=simulate).pack(pady=10)
 root.geometry("300x300")
 
 root.mainloop()
